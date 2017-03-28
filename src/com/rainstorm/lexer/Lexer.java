@@ -11,7 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by rainstorm on 3/27/17.
+ * 词法分析器。
+ * 1. 支持提示语法错误所在行号
+ * 2. 支持注释（单行，多行）
+ * 3. 支持浮点数
+ * 4. 支持字符串字面量
+ * 5. 支持字符字面量（单字符或转义字符）
  */
 public class Lexer {
     private static Logger logger = LogManager.getLogger();
@@ -47,20 +52,24 @@ public class Lexer {
                     tokens.add(Delimiter.get(peek));
                     readch();
                 } else if (Operator.isOperator(peek)) {
-                    tokens.add(getOperator());
+                    Token token = getOperator();
+                    if (token != Token.SPACE) {
+                        tokens.add(token);
+                    }
                 } else if (Character.isDigit(peek)) {
                     tokens.add(getDigit());
                 } else if (LString.isQuote(peek)) {
                     tokens.add(getLString());
                 } else if (Character.isLetter(peek) || peek == '_') {
                     tokens.add(getIdentifier());
-                } else {
-                    tokens.add(Token.SPACE);
+                } else if(!EOF){
+                    throw new SyntaxException("Error: line " + line + " Syntax error!");
                 }
             }
 
         } catch (SyntaxException e) {
             e.printStackTrace();
+            System.exit(1);
         } finally {
             reader.close();
         }
@@ -239,9 +248,9 @@ public class Lexer {
 
         Token operator;
         String ope = builder.toString();
-        if(builder.length() == 0){
+        if (builder.length() == 0) {
             operator = Token.SPACE;
-        }else if (Operator.isOperator(ope)) {
+        } else if (Operator.isOperator(ope)) {
             operator = Operator.get(ope);
         } else {
             throw new SyntaxException("Error: line " + line + " Syntax error!");
@@ -283,7 +292,9 @@ public class Lexer {
         }
 
         peek = (char) ch;
-        logger.debug(peek);
+        if (logger.isDebugEnabled()) {
+            logger.debug(peek);
+        }
     }
 
     public static void main(String[] args) {
